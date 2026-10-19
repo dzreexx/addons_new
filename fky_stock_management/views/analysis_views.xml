@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="fky_stock_analysis_wizard_form" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.wizard.form</field>
+            <field name="model">fky.stock.analysis.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Stock Purchase Analysis">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="company_id" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="average_months"/>
+                                <field name="stock_coverage_months" options="{'digits': 0}"/>
+                                <field name="product_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+                                <field name="internal_category_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+                            </group>
+                        </group>
+                        <group string="Ketahanan Bulan per Internal Category">
+                            <field name="coverage_line_ids"
+                                   help="Klik 'Add a line' lalu pilih internal category (mis. CDI, carburator) dan isi ketahanan bulan. Semua produk dalam kategori itu memakai nilai ini; kategori lain memakai default di atas, kecuali produknya punya nilai khusus di grid per product.">
+                                <tree editable="bottom">
+                                    <field name="internal_category_id" options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="coverage_months" options="{'digits': 0}"/>
+                                </tree>
+                            </field>
+                        </group>
+                        <group string="Ketahanan Bulan per Product">
+                            <field name="product_coverage_line_ids"
+                                   help="Klik 'Add a line' lalu pilih product dan isi ketahanan bulan. Nilai di sini mengalahkan nilai kategori dan default di atas.">
+                                <tree editable="bottom">
+                                    <field name="product_id" options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="coverage_months" options="{'digits': 0}"/>
+                                </tree>
+                            </field>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_save_coverage" type="object"
+                                string="Save" class="btn-secondary"
+                                icon="fa-save"/>
+                        <button name="action_generate" type="object"
+                                string="Generate Report" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="fky_stock_analysis_preview_form" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.preview.form</field>
+            <field name="model">fky.stock.analysis.preview</field>
+            <field name="arch" type="xml">
+                <form string="Stock Purchase Analysis Preview">
+                    <header>
+                        <button name="action_save_report"
+                                string="Save Report"
+                                type="object"
+                                class="btn-primary"
+                                icon="fa-save"/>
+                        <button name="action_create_purchase_order"
+                                string="Create Purchase Order"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-shopping-cart"/>
+                        <button name="action_view_lines"
+                                string="Search Lines"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-search"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="company_id" readonly="1"/></h1>
+                            <h4>Preview Hasil Analisa</h4>
+                        </div>
+                        <group string="Hasil Analisa" colspan="2">
+                            <field name="preview_line_ids" nolabel="1">
+                                <tree editable="bottom" create="false" delete="false">
+                                    <field name="internal_category_id" string="Int. Category" optional="show"/>
+                                    <field name="product_brand_id" string="Brand" optional="show"/>
+                                    <field name="default_code" string="Code" optional="show"/>
+                                    <field name="product_name" string="Product Name" optional="show"/>
+                                    <field name="on_hand_qty" string="Stok Saat Ini" optional="show" digits="[16, 0]"/>
+                                    <field name="incoming_qty" string="Incoming (PO)" optional="show" digits="[16, 0]"/>
+                                    <field name="sales_order_qty" string="Backorder" optional="show" digits="[16, 0]"/>
+                                    <field name="average_monthly_sales" string="Average Month" optional="show" digits="[16, 0]"/>
+                                    <field name="coverage_months" string="Ket. Bulan" optional="show" options="{'digits': 0}"/>
+                                    <field name="target_stock_qty" string="Target Stok" optional="show" digits="[16, 0]"/>
+                                    <field name="recommended_purchase_qty" string="Planning Pembelian" optional="show" digits="[16, 0]"/>
+                                    <field name="isi_perdus" string="Isi Per Dus" optional="show" digits="[16, 0]"/>
+                                                                        <field name="moq_qty" string="MoQ" optional="show" digits="[16, 0]"/>
+                                    <field name="final_qty" string="Final Quantity" optional="show" digits="[16, 0]"/>
+                                    <field name="months_of_stock" string="Ket. Stok" optional="hide" digits="[16, 0]"/>
+                                    <field name="future_months_of_stock" string="Ket. + PO" optional="hide" digits="[16, 0]"/>
+                                    <field name="vendor_id" string="Vendor" optional="hide"/>
+                                    <field name="has_components" invisible="1"/>
+                                    <button name="action_view_components" string="Components" type="object" icon="fa-sitemap" attrs="{'invisible': [('has_components', '=', False)]}"/>
+                                </tree>
+                            </field>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Server action (menu entry point): creates a PERSISTED wizard
+             first so coverage-row deletions are real unlinks. The legacy
+             act_window below is kept dormant: Odoo cannot convert an
+             existing action record across models, and the menu now points
+             here. -->
+        <record id="action_open_stock_analysis_wizard" model="ir.actions.server">
+            <field name="name">Stock Purchase Analysis</field>
+            <field name="model_id" ref="model_fky_stock_analysis_wizard"/>
+            <field name="state">code</field>
+            <field name="code">action = model.open_wizard()</field>
+        </record>
+
+        <record id="action_fky_stock_analysis_wizard" model="ir.actions.act_window">
+            <field name="name">Stock Purchase Analysis</field>
+            <field name="res_model">fky.stock.analysis.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context">{'form_view_initial_mode': 'edit'}</field>
+        </record>
+
+        <record id="fky_stock_analysis_report_tree" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.report.tree</field>
+            <field name="model">fky.stock.analysis.report</field>
+            <field name="arch" type="xml">
+                <tree string="Purchase Analysis Report" create="false">
+                    <field name="name" optional="show"/>
+                    <field name="company_id" optional="show"/>
+                    <field name="create_date" optional="show"/>
+                    <field name="user_id" optional="show"/>
+                    <field name="line_count" string="Jumlah Baris" optional="show"/>
+                    <field name="average_months" optional="hide" options="{'digits': 0}"/>
+                    <field name="stock_coverage_months" optional="hide" options="{'digits': 0}"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="fky_stock_analysis_report_search" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.report.search</field>
+            <field name="model">fky.stock.analysis.report</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name" string="Report"/>
+                    <field name="company_id" string="Company"/>
+                    <field name="user_id" string="Created By"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Company"
+                                name="group_company"
+                                context="{'group_by': 'company_id'}"/>
+                        <filter string="Created By"
+                                name="group_user"
+                                context="{'group_by': 'user_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="fky_stock_analysis_report_form" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.report.form</field>
+            <field name="model">fky.stock.analysis.report</field>
+            <field name="arch" type="xml">
+                <form string="Stock Purchase Analysis Report">
+                    <header>
+                        <button name="action_create_purchase_order"
+                                string="Create Purchase Order"
+                                type="object"
+                                class="btn-primary"
+                                icon="fa-shopping-cart"/>
+                        <button name="action_generate_final_report"
+                                string="Generate Final Report"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-check-square-o"/>
+                        <button name="action_export_excel"
+                                string="Export Excel"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-file-excel-o"/>
+                        <button name="action_regenerate"
+                                string="Regenerate"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-refresh"/>
+                        <button name="action_view_lines"
+                                string="Search Lines"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-search"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1><field name="name"/></h1>
+                        </div>
+                        <group>
+                            <group string="Report">
+                                <field name="company_id" readonly="1"/>
+                                <field name="user_id" readonly="1"/>
+                                <field name="create_date" readonly="1"/>
+                            </group>
+                            <group string="Parameter">
+                                <field name="average_months" readonly="1"/>
+                                <field name="stock_coverage_months" readonly="1" options="{'digits': 0}"/>
+                                <field name="product_ids" widget="many2many_tags" readonly="1"/>
+                                <field name="internal_category_ids" widget="many2many_tags" readonly="1"/>
+                            </group>
+                        </group>
+                        <group string="Hasil Analisa" colspan="2">
+                            <field name="line_ids" nolabel="1">
+                                <tree editable="bottom" create="false" delete="false">
+                                    <field name="internal_category_id" string="Int. Category" optional="show"/>
+                                    <field name="product_brand_id" string="Brand" optional="show"/>
+                                    <field name="default_code" string="Code" optional="show"/>
+                                    <field name="product_name" string="Product Name" optional="show"/>
+                                    <field name="on_hand_qty" string="Stok Saat Ini" optional="show" digits="[16, 0]"/>
+                                    <field name="incoming_qty" string="Incoming (PO)" optional="show" digits="[16, 0]"/>
+                                    <field name="sales_order_qty" string="Backorder" optional="show" digits="[16, 0]"/>
+                                    <field name="average_monthly_sales" string="Average Month" optional="show" digits="[16, 0]"/>
+                                    <field name="coverage_months" string="Ket. Bulan" optional="show" options="{'digits': 0}"/>
+                                    <field name="target_stock_qty" string="Target Stok" optional="show" digits="[16, 0]"/>
+                                    <field name="recommended_purchase_qty" string="Planning Pembelian" optional="show" digits="[16, 0]"/>
+                                    <field name="isi_perdus" string="Isi Per Dus" optional="show" digits="[16, 0]"/>
+                                                                        <field name="moq_qty" string="MoQ" optional="show" digits="[16, 0]"/>
+                                    <field name="final_qty" string="Final Quantity" optional="show" digits="[16, 0]"/>
+                                    <field name="months_of_stock" string="Ket. Stok" optional="hide" digits="[16, 0]"/>
+                                    <field name="future_months_of_stock" string="Ket. + PO" optional="hide" digits="[16, 0]"/>
+                                    <field name="vendor_id" string="Vendor" optional="hide"/>
+                                    <field name="has_components" invisible="1"/>
+                                    <button name="action_view_components" string="Components" type="object" icon="fa-sitemap" attrs="{'invisible': [('has_components', '=', False)]}"/>
+                                </tree>
+                            </field>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_fky_stock_reports" model="ir.actions.act_window">
+            <field name="name">Purchase Analysis Report</field>
+            <field name="res_model">fky.stock.analysis.report</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Searchable list views for analysis lines -->
+
+        <record id="fky_stock_analysis_line_tree" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.line.tree</field>
+            <field name="model">fky.stock.analysis.line</field>
+            <field name="arch" type="xml">
+                <tree string="Analysis Lines" editable="bottom" create="false" delete="false">
+                    <field name="internal_category_id" string="Int. Category" optional="show"/>
+                    <field name="product_brand_id" string="Brand" optional="show"/>
+                    <field name="default_code" string="Code" optional="show"/>
+                    <field name="product_name" string="Product Name" optional="show"/>
+                    <field name="on_hand_qty" string="Stok Saat Ini" optional="show" digits="[16, 0]"/>
+                    <field name="incoming_qty" string="Incoming (PO)" optional="show" digits="[16, 0]"/>
+                    <field name="sales_order_qty" string="Backorder" optional="show" digits="[16, 0]"/>
+                    <field name="average_monthly_sales" string="Average Month" optional="show" digits="[16, 0]"/>
+                    <field name="coverage_months" string="Ket. Bulan" optional="show" options="{'digits': 0}"/>
+                    <field name="target_stock_qty" string="Target Stok" optional="show" digits="[16, 0]"/>
+                    <field name="recommended_purchase_qty" string="Planning Pembelian" optional="show" digits="[16, 0]"/>
+                    <field name="isi_perdus" string="Isi Per Dus" optional="show" digits="[16, 0]"/>
+                                        <field name="moq_qty" string="MoQ" optional="show" digits="[16, 0]"/>
+                    <field name="final_qty" string="Final Quantity" optional="show" digits="[16, 0]"/>
+                    <field name="months_of_stock" string="Ket. Stok" optional="hide" digits="[16, 0]"/>
+                    <field name="future_months_of_stock" string="Ket. + PO" optional="hide" digits="[16, 0]"/>
+                    <field name="vendor_id" string="Vendor" optional="hide"/>
+                    <field name="has_components" invisible="1"/>
+                    <button name="action_view_components" string="Components" type="object" icon="fa-sitemap" attrs="{'invisible': [('has_components', '=', False)]}"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="fky_stock_analysis_line_search" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.line.search</field>
+            <field name="model">fky.stock.analysis.line</field>
+            <field name="arch" type="xml">
+                <search string="Search Analysis Lines">
+                    <field name="product_id" string="Product"/>
+                    <field name="internal_category_id" string="Internal Category"/>
+                    <field name="product_brand_id" string="Brand"/>
+                    <field name="vendor_id" string="Vendor"/>
+                    <filter string="Has Components"
+                            name="has_components"
+                            domain="[('has_components', '=', True)]"/>
+                    <filter string="No Components"
+                            name="no_components"
+                            domain="[('has_components', '=', False)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Internal Category" name="group_cat"
+                                 context="{'group_by': 'internal_category_id'}"/>
+                        <filter string="Brand" name="group_brand"
+                                 context="{'group_by': 'product_brand_id'}"/>
+                        <filter string="Vendor" name="group_vendor"
+                                context="{'group_by': 'vendor_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_fky_stock_analysis_lines" model="ir.actions.act_window">
+            <field name="name">Analysis Lines</field>
+            <field name="res_model">fky.stock.analysis.line</field>
+            <field name="view_mode">tree</field>
+            <field name="view_id" ref="fky_stock_analysis_line_tree"/>
+            <field name="search_view_id" ref="fky_stock_analysis_line_search"/>
+        </record>
+
+        <record id="fky_stock_analysis_preview_line_tree" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.preview.line.tree</field>
+            <field name="model">fky.stock.analysis.preview.line</field>
+            <field name="arch" type="xml">
+                <tree string="Analysis Lines" editable="bottom" create="false" delete="false">
+                    <field name="internal_category_id" string="Int. Category" optional="show"/>
+                    <field name="product_brand_id" string="Brand" optional="show"/>
+                    <field name="default_code" string="Code" optional="show"/>
+                    <field name="product_name" string="Product Name" optional="show"/>
+                    <field name="on_hand_qty" string="Stok Saat Ini" optional="show" digits="[16, 0]"/>
+                    <field name="incoming_qty" string="Incoming (PO)" optional="show" digits="[16, 0]"/>
+                    <field name="sales_order_qty" string="Backorder" optional="show" digits="[16, 0]"/>
+                    <field name="average_monthly_sales" string="Average Month" optional="show" digits="[16, 0]"/>
+                    <field name="coverage_months" string="Ket. Bulan" optional="show" options="{'digits': 0}"/>
+                    <field name="target_stock_qty" string="Target Stok" optional="show" digits="[16, 0]"/>
+                    <field name="recommended_purchase_qty" string="Planning Pembelian" optional="show" digits="[16, 0]"/>
+                    <field name="isi_perdus" string="Isi Per Dus" optional="show" digits="[16, 0]"/>
+                                        <field name="moq_qty" string="MoQ" optional="show" digits="[16, 0]"/>
+                    <field name="final_qty" string="Final Quantity" optional="show" digits="[16, 0]"/>
+                    <field name="months_of_stock" string="Ket. Stok" optional="hide" digits="[16, 0]"/>
+                    <field name="future_months_of_stock" string="Ket. + PO" optional="hide" digits="[16, 0]"/>
+                    <field name="vendor_id" string="Vendor" optional="hide"/>
+                    <field name="has_components" invisible="1"/>
+                    <button name="action_view_components" string="Components" type="object" icon="fa-sitemap" attrs="{'invisible': [('has_components', '=', False)]}"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="fky_stock_analysis_preview_line_search" model="ir.ui.view">
+            <field name="name">fky.stock.analysis.preview.line.search</field>
+            <field name="model">fky.stock.analysis.preview.line</field>
+            <field name="arch" type="xml">
+                <search string="Search Analysis Lines">
+                    <field name="product_id" string="Product"/>
+                    <field name="internal_category_id" string="Internal Category"/>
+                    <field name="product_brand_id" string="Brand"/>
+                    <field name="vendor_id" string="Vendor"/>
+                    <filter string="Has Components"
+                            name="has_components"
+                            domain="[('has_components', '=', True)]"/>
+                    <filter string="No Components"
+                            name="no_components"
+                            domain="[('has_components', '=', False)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Internal Category" name="group_cat"
+                                 context="{'group_by': 'internal_category_id'}"/>
+                        <filter string="Brand" name="group_brand"
+                                 context="{'group_by': 'product_brand_id'}"/>
+                        <filter string="Vendor" name="group_vendor"
+                                context="{'group_by': 'vendor_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_fky_stock_analysis_preview_lines" model="ir.actions.act_window">
+            <field name="name">Analysis Lines</field>
+            <field name="res_model">fky.stock.analysis.preview.line</field>
+            <field name="view_mode">tree</field>
+            <field name="view_id" ref="fky_stock_analysis_preview_line_tree"/>
+            <field name="search_view_id" ref="fky_stock_analysis_preview_line_search"/>
+        </record>
+
+    </data>
+</odoo>

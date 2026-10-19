@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_product_template_form" model="ir.ui.view">
+        <field name="name">fky.stock.management.product.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="raw_material_ids"
+                       string="Bahan Baku"
+                       widget="many2many_tags"
+                       options="{'no_create': True}"/>
+                <field name="equivalent_product_ids"
+                       string="Produk Setara / Kombinasi"
+                       widget="many2many_tags"
+                       options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

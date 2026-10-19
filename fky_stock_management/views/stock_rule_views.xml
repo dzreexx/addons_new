@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Tree View -->
+    <record id="view_stock_rule_tree" model="ir.ui.view">
+        <field name="name">fky.stock.rule.tree</field>
+        <field name="model">fky.stock.rule</field>
+        <field name="arch" type="xml">
+            <tree editable="bottom"
+                  decoration-danger="state == 'urgent'"
+                  decoration-warning="state == 'low'"
+                  decoration-success="state == 'ok'">
+                <field name="is_favorite" widget="boolean_favorite" nolabel="1"/>
+                <field name="product_id"/>
+                <field name="location_id" readonly="1"/>
+                <field name="company_id" optional="hide"/>
+                <field name="qty_available" string="On Hand" readonly="1" optional="show" options="{'digits': 0}"/>
+                <field name="other_qty_available" string="Other On Hand" readonly="1" optional="show" options="{'digits': 0}"/>
+                <field name="other_location_id" string="Other Loc" readonly="1" optional="hide"/>
+                <field name="min_qty" optional="show" options="{'digits': 0}"/>
+                <field name="best_seller_average_sales" string="Best Seller" readonly="1" optional="show" options="{'digits': 0}"/>
+                <field name="vendor_id" string="Vendor" readonly="1" optional="hide"/>
+                <field name="component_count" string="Components" readonly="1" optional="hide"/>
+                <field name="snooze_until" string="Snoozed Until" optional="hide"/>
+                <field name="state"
+                       widget="badge"
+                       decoration-danger="state == 'urgent'"
+                       decoration-warning="state == 'low'"
+                       decoration-success="state == 'ok'"
+                       readonly="1"
+                       optional="show"/>
+                <field name="has_components" invisible="1"/>
+                <field name="is_snoozed" invisible="1"/>
+                <button name="action_snooze"
+                        string="Snooze"
+                        type="object"
+                        icon="fa-hourglass-half"
+                        attrs="{'invisible': [('is_snoozed', '=', True)]}"/>
+                <button name="action_view_components"
+                        string="Components"
+                        type="object"
+                        icon="fa-sitemap"
+                        attrs="{'invisible': [('has_components', '=', False)]}"/>
+                <button name="action_run_analysis"
+                        string="Analyze"
+                        type="object"
+                        icon="fa-line-chart"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_stock_rule_form" model="ir.ui.view">
+        <field name="name">fky.stock.rule.form</field>
+        <field name="model">fky.stock.rule</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_snooze"
+                            string="Snooze"
+                            type="object"
+                            icon="fa-hourglass-half"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('is_snoozed', '=', True)]}"/>
+                    <button name="action_unsnooze"
+                            string="Un-snooze"
+                            type="object"
+                            class="btn-secondary"
+                            attrs="{'invisible': [('is_snoozed', '=', False)]}"/>
+                    <button name="action_run_analysis"
+                            string="Analyze"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-line-chart"/>
+                    <field name="state"
+                           widget="statusbar"
+                           statusbar_visible="ok,low,urgent"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="is_favorite" widget="boolean_favorite" nolabel="1"/>
+                        <button name="action_view_components"
+                                type="object"
+                                icon="fa-sitemap"
+                                class="oe_stat_button"
+                                attrs="{'invisible': [('has_components', '=', False)]}">
+                            <div class="o_form_field_many2one o_field_widget oe_stat_button">
+                                <span class="o_stat_text">Components</span>
+                                <span class="o_stat_value" colspan="2"><field name="component_count"/></span>
+                            </div>
+                        </button>
+                    </div>
+                    <field name="has_components" invisible="1"/>
+                    <group>
+                        <group string="Product">
+                            <field name="product_id"/>
+                            <field name="location_id" readonly="1"/>
+                            <field name="company_id" readonly="1"/>
+                        </group>
+                        <group string="Alert Rule">
+                            <field name="min_qty" options="{'digits': 0}"/>
+                            <field name="qty_available" string="Current On Hand" options="{'digits': 0}"/>
+                            <field name="other_location_id" readonly="1"/>
+                            <field name="other_qty_available" string="Other Location On Hand" options="{'digits': 0}"/>
+                            <field name="snooze_until" string="Snoozed Until"/>
+                            <field name="is_snoozed"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_stock_rule_search" model="ir.ui.view">
+        <field name="name">fky.stock.rule.search</field>
+        <field name="model">fky.stock.rule</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="location_id"/>
+                <filter string="Favorites"
+                        name="favorites"
+                        domain="[('is_favorite','=',True)]"/>
+                <separator/>
+                <filter string="Needs Attention"
+                        name="needs_attention"
+                        domain="[('state','in',['low','urgent'])]"/>
+                <filter string="Low Stock"
+                        name="low_stock"
+                        domain="[('state','=','low')]"/>
+                <filter string="Urgent"
+                        name="urgent_stock"
+                        domain="[('state','=','urgent')]"/>
+                <filter string="OK"
+                        name="ok_stock"
+                        domain="[('state','=','ok')]"/>
+                <separator/>
+                <filter string="Best Seller"
+                        name="best_seller"
+                        domain="[('best_seller_average_sales','>',0)]"/>
+                <separator/>
+                <filter string="Has Components"
+                        name="has_components"
+                        domain="[('has_components','=',True)]"/>
+                <filter string="No Components"
+                        name="no_components"
+                        domain="[('has_components','=',False)]"/>
+                <separator/>
+                <filter string="Not Snoozed"
+                        name="hide_snoozed"
+                        domain="[('is_snoozed','=',False)]"/>
+                <filter string="Snoozed"
+                        name="snoozed"
+                        domain="[('is_snoozed','=',True)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Location"
+                            name="group_location"
+                            context="{'group_by':'location_id'}"/>
+                    <filter string="Company"
+                            name="group_company"
+                            context="{'group_by':'company_id'}"/>
+                    <filter string="Status"
+                            name="group_state"
+                            context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_stock_rule" model="ir.actions.act_window">
+        <field name="name">Stock &amp; Purchase Dashboard</field>
+        <field name="res_model">fky.stock.rule</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_hide_snoozed': 1, 'search_default_needs_attention': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No stock alert rules yet!
+            </p>
+            <p>
+                Create alert rules to monitor stock levels at specific locations,
+                and run the Stock Purchase Analysis wizard to see live coverage
+                metrics (incoming, average sales, recommended buys) for each
+                product. Locations are managed from the "Generate Rules" submenu.
+            </p>
+        </field>
+    </record>
+
+</odoo>

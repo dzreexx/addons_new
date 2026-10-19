@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Nightly off-hours refresh of alert rules (Best Seller + qty/state).
+         Deactivate here or via Settings > Technical > Scheduled Actions.
+         Removed automatically on module uninstall (standard data record). -->
+    <record id="ir_cron_nightly_stock_refresh" model="ir.cron">
+        <field name="name">FKY Stock: nightly rule refresh</field>
+        <field name="model_id" ref="model_fky_stock_rule"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_nightly_refresh()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="True"/>
+        <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=1, minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
+
+    <!-- Manual refresh of the same figures the cron owns (qty/state +
+         Best Seller). Admin only: hidden from regular users via group.
+         Removed automatically on module uninstall (standard data record). -->
+    <record id="action_refresh_now" model="ir.actions.server">
+        <field name="name">Refresh Stock Figures Now</field>
+        <field name="model_id" ref="model_fky_stock_rule"/>
+        <field name="binding_model_id" ref="model_fky_stock_rule"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">model.cron_nightly_refresh()
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': 'Stock figures refreshed',
+        'message': 'Qty, state and Best Seller recomputed for all rules.',
+        'type': 'success',
+        'sticky': False,
+    },
+}</field>
+        <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+</odoo>

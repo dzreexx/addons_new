@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Combined server action: appears in the tree "Action" dropdown so
+         multiple alert rules can be transferred and/or manufactured at once. -->
+    <record id="action_fky_stock_mass_operations" model="ir.actions.server">
+        <field name="name">Mutasi / Manufacture (Multiple)</field>
+        <field name="model_id" ref="model_fky_stock_rule"/>
+        <field name="binding_model_id" ref="model_fky_stock_rule"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_mass_operations()</field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_fky_stock_operation_wizard_form" model="ir.ui.view">
+        <field name="name">fky.stock.operation.wizard.form</field>
+        <field name="model">fky.stock.operation.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mutasi / Manufacture (Draft)">
+                <div class="alert alert-info" role="alert">
+                    Creates <strong>draft</strong> internal transfers (Mutasi) or
+                    manufacturing orders for the selected products. Nothing is
+                    validated — you review and confirm later.
+                    <br/>
+                    Choose <strong>Mutasi</strong> to move stock (works for every product)
+                    or <strong>Manufacture</strong> to create manufacturing orders
+                    (requires every product to have a BOM). Defaults to Manufacture
+                    when all selected products have a BOM, otherwise Mutasi.
+                </div>
+                <group>
+                    <group string="Operation">
+                        <field name="operation"/>
+                    </group>
+                    <group string="Transfer" attrs="{'invisible': [('operation', '!=', 'mutasi')]}">
+                        <field name="source_location_id" options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                    <group string="Quantity">
+                        <field name="qty_mode"/>
+                        <field name="qty_value" options="{'digits': 0}"/>
+                    </group>
+                </group>
+                <group string="Products">
+                    <field name="line_ids" nolabel="1">
+                        <tree editable="bottom" create="false" delete="false">
+                            <field name="product_sku" string="SKU"/>
+                            <field name="product_id" string="Product" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="company_id" string="Company" optional="hide"/>
+                            <field name="has_bom" string="Has BOM" readonly="1"/>
+                            <field name="bom_ref" string="BOM" readonly="1" optional="show"/>
+                            <field name="move_qty" string="Qty" options="{'digits': 0}"/>
+                        </tree>
+                    </field>
+                </group>
+                <footer>
+                    <button name="action_create_documents" string="Create Draft Documents" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

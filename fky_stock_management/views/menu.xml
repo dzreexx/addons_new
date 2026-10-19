@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem
+        id="menu_fky_stock_root"
+        name="Stock &amp; Purchase Analysis"
+        parent="stock.menu_stock_root"
+        sequence="91"/>
+
+    <menuitem
+        id="menu_fky_stock_dashboard"
+        name="Dashboard"
+        parent="menu_fky_stock_root"
+        action="action_stock_rule"
+        sequence="10"/>
+
+    <menuitem
+        id="menu_fky_stock_reports"
+        name="Purchase Analysis Report"
+        parent="menu_fky_stock_root"
+        action="action_fky_stock_reports"
+        sequence="15"
+        groups="base.group_user"/>
+
+    <menuitem
+        id="menu_fky_stock_analysis"
+        name="Purchase Analysis"
+        parent="menu_fky_stock_root"
+        action="action_open_stock_analysis_wizard"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_fky_stock_final_qty_check"
+        name="Final Qty Check"
+        parent="menu_fky_stock_root"
+        sequence="25"/>
+
+    <menuitem
+        id="menu_fky_stock_final_qty_report"
+        name="Report Final Qty"
+        parent="menu_fky_stock_final_qty_check"
+        action="action_fky_stock_final_reports"
+        sequence="20"/>
+
+    <menuitem
+        id="menu_fky_stock_generator"
+        name="Generate Rules"
+        parent="menu_fky_stock_root"
+        action="action_fky_stock_generator"
+        sequence="30"/>
+
+    <menuitem
+        id="menu_fky_stock_settings"
+        name="Settings"
+        parent="menu_fky_stock_root"
+        action="action_fky_stock_config"
+        sequence="40"/>
+
+</odoo>

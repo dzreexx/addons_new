@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="fky_stock_rule_multi_company" model="ir.rule">
+        <field name="name">FKY Stock Rule: Multi-Company</field>
+        <field name="model_id" ref="model_fky_stock_rule"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="fky_stock_analysis_report_multi_company" model="ir.rule">
+        <field name="name">FKY Analysis Report: Multi-Company</field>
+        <field name="model_id" ref="model_fky_stock_analysis_report"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="fky_stock_analysis_line_multi_company" model="ir.rule">
+        <field name="name">FKY Analysis Line: Multi-Company</field>
+        <field name="model_id" ref="model_fky_stock_analysis_line"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="fky_stock_coverage_rule_multi_company" model="ir.rule">
+        <field name="name">FKY Coverage Rule: Multi-Company</field>
+        <field name="model_id" ref="model_fky_stock_coverage_rule"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+</odoo>

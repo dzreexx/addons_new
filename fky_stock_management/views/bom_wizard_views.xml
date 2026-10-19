@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Form View -->
+    <record id="view_fky_stock_bom_wizard_form" model="ir.ui.view">
+        <field name="name">fky.stock.bom.wizard.form</field>
+        <field name="model">fky.stock.bom.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Product Components">
+                <sheet>
+                <group>
+                    <field name="product_id" readonly="1"/>
+                    <field name="bom_id" readonly="1"/>
+                    <field name="final_qty" readonly="1"/>
+                    <field name="preview_line_id" invisible="1"/>
+                    <field name="report_line_id" invisible="1"/>
+                </group>
+                <group string="Components">
+                    <field name="line_ids">
+                        <tree editable="bottom" create="false" delete="false">
+                            <field name="component_sku" string="SKU" readonly="1"/>
+                            <field name="component_id" string="Component" readonly="1"/>
+                            <field name="onhand_qty" string="On Hand" readonly="1" digits="[16, 0]"/>
+                            <field name="product_uom_id" string="Unit" readonly="1"/>
+                            <field name="incoming_qty" string="Incoming" readonly="1" digits="[16, 0]"/>
+                            <field name="plan_qty" string="Plan Qty" digits="[16, 0]"/>
+                            <button name="action_open_qty" string="Set" type="object" icon="fa-pencil"/>
+                        </tree>
+                    </field>
+                </group>
+                </sheet>
+                <footer>
+                    <button name="action_add_to_analysis"
+                            string="Add to Analysis"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('preview_line_id', '=', False)]}"/>
+                    <button name="action_add_to_report"
+                            string="Add to Report"
+                            type="object"
+                            class="btn-primary"
+                            attrs="{'invisible': [('report_line_id', '=', False)]}"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Simplified reference popup (dashboard & saved reports):
+         no plan columns, no Set/Add actions -->
+    <record id="view_fky_stock_bom_wizard_simple_form" model="ir.ui.view">
+        <field name="name">fky.stock.bom.wizard.simple.form</field>
+        <field name="model">fky.stock.bom.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Product Components">
+                <sheet>
+                <group>
+                    <field name="product_id" readonly="1"/>
+                    <field name="bom_id" readonly="1"/>
+                    <field name="final_qty" readonly="1"/>
+                </group>
+                <group string="Components">
+                    <field name="line_ids" readonly="1">
+                        <tree editable="false" create="false" delete="false">
+                            <field name="component_sku" string="SKU"/>
+                            <field name="component_id" string="Component"/>
+                            <field name="onhand_qty" string="On Hand" digits="[16, 0]"/>
+                            <field name="product_uom_id" string="Unit"/>
+                            <field name="incoming_qty" string="Incoming" digits="[16, 0]"/>
+                        </tree>
+                    </field>
+                </group>
+                </sheet>
+                <footer>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Quantity editor: opened without res_id so the field is always
+         editable (new records have no view mode) -->
+        <record id="view_fky_stock_bom_qty_wizard_form" model="ir.ui.view">        <field name="name">fky.stock.bom.qty.wizard.form</field>
+        <field name="model">fky.stock.bom.qty.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Set Plan Quantity">
+                <sheet>
+                <group>
+                    <field name="bom_line_id" readonly="1" options="{'no_open': True}"/>
+                    <field name="qty" digits="[16, 0]"/>
+                </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm"
+                            string="Confirm"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

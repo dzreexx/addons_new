@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Form View -->
+    <record id="view_fky_stock_generator_form" model="ir.ui.view">
+        <field name="name">fky.stock.rule.generator.form</field>
+        <field name="model">fky.stock.rule.generator</field>
+        <field name="arch" type="xml">
+            <form string="Generate Stock Alert Rules">
+                <div class="alert alert-info" role="alert">
+                    This wizard generates minimum quantity alert rules for <strong>all active products</strong>
+                    at the selected locations.
+                    The minimum quantity is set based on each product's <strong>Isi Perdus</strong> field
+                    (falling back to 1.0 if not defined).
+                    <br/>
+                    Existing rules are kept untouched — this only adds rules for products that do not have one yet.
+                </div>
+                <group>
+                    <field name="location_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+                </group>
+                <footer>
+                    <button name="action_generate_rules" string="Generate Rules" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_fky_stock_generator" model="ir.actions.act_window">
+        <field name="name">Generate Stock Alert Rules</field>
+        <field name="res_model">fky.stock.rule.generator</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

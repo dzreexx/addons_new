@@ -1,0 +1,19 @@
+<odoo>
+    <!-- Stock alert as a plain column on quotation lines (no badge, no row tint) -->
+    <record id="view_order_form_inherit_fky_stock_alert" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.fky.stock.alert</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Stock Alert column next to Qty (tree) -->
+            <xpath expr="//field[@name='order_line']/tree//field[@name='product_uom_qty']" position="after">
+                <field name="fky_stock_state" readonly="1" optional="show"/>
+            </xpath>
+
+            <!-- Stock Alert field in the order-line form, next to Qty -->
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_uom_qty']" position="after">
+                <field name="fky_stock_state" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
