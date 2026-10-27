@@ -17,6 +17,7 @@
                                 <field name="stock_coverage_months" options="{'digits': 0}"/>
                                 <field name="product_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
                                 <field name="internal_category_ids" widget="many2many_tags" options="{'no_create': True, 'no_open': True}"/>
+                                <field name="vendor_ids" widget="many2many_tags" domain="[('supplier_rank', '>', 0)]" options="{'no_create': True, 'no_open': True}"/>
                             </group>
                         </group>
                         <group string="Ketahanan Bulan per Internal Category">
@@ -77,9 +78,14 @@
                             <h1><field name="company_id" readonly="1"/></h1>
                             <h4>Preview Hasil Analisa</h4>
                         </div>
+                        <group string="Filter">
+                            <field name="product_ids" widget="many2many_tags" readonly="1"/>
+                            <field name="internal_category_ids" widget="many2many_tags" readonly="1"/>
+                            <field name="vendor_ids" widget="many2many_tags" readonly="1"/>
+                        </group>
                         <group string="Hasil Analisa" colspan="2">
                             <field name="preview_line_ids" nolabel="1">
-                                <tree editable="bottom" create="false" delete="false">
+                                <tree editable="bottom" create="false" delete="true">
                                     <field name="internal_category_id" string="Int. Category" optional="show"/>
                                     <field name="product_brand_id" string="Brand" optional="show"/>
                                     <field name="default_code" string="Code" optional="show"/>
@@ -210,6 +216,7 @@
                                 <field name="stock_coverage_months" readonly="1" options="{'digits': 0}"/>
                                 <field name="product_ids" widget="many2many_tags" readonly="1"/>
                                 <field name="internal_category_ids" widget="many2many_tags" readonly="1"/>
+                                <field name="vendor_ids" widget="many2many_tags" readonly="1"/>
                             </group>
                         </group>
                         <group string="Hasil Analisa" colspan="2">
@@ -283,6 +290,7 @@
             <field name="model">fky.stock.analysis.line</field>
             <field name="arch" type="xml">
                 <search string="Search Analysis Lines">
+                    <field name="default_code" string="Code"/>
                     <field name="product_id" string="Product"/>
                     <field name="internal_category_id" string="Internal Category"/>
                     <field name="product_brand_id" string="Brand"/>
@@ -317,7 +325,7 @@
             <field name="name">fky.stock.analysis.preview.line.tree</field>
             <field name="model">fky.stock.analysis.preview.line</field>
             <field name="arch" type="xml">
-                <tree string="Analysis Lines" editable="bottom" create="false" delete="false">
+                <tree string="Analysis Lines" editable="bottom" create="false" delete="true">
                     <field name="internal_category_id" string="Int. Category" optional="show"/>
                     <field name="product_brand_id" string="Brand" optional="show"/>
                     <field name="default_code" string="Code" optional="show"/>
@@ -346,6 +354,7 @@
             <field name="model">fky.stock.analysis.preview.line</field>
             <field name="arch" type="xml">
                 <search string="Search Analysis Lines">
+                    <field name="default_code" string="Code"/>
                     <field name="product_id" string="Product"/>
                     <field name="internal_category_id" string="Internal Category"/>
                     <field name="product_brand_id" string="Brand"/>

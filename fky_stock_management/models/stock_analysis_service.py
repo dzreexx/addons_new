@@ -31,65 +31,125 @@ class StockAnalysisService(models.AbstractModel):
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def _name_matches_raw(cls, finished_name, comp_name):
-        """A component matches when its name is the finished product's name
-        with an ``M-`` prefix (case/space insensitive)."""
-        target = ' '.join((finished_name or '').split()).lower()
+    def _normalized_code(cls, code):
+        """Case/space-normalised product code used by the M- matcher."""
+        return (code or '').strip().lower()
+
+    @classmethod
+    def _raw_code_key(cls, code):
+        """Return the finished code encoded by an ``M-`` raw material code."""
+        normalized = cls._normalized_code(code)
+        if not normalized.startswith('m-'):
+            return None
+        key = normalized[2:].strip()
+        return key or None
+
+    @classmethod
+    def _code_matches_raw(cls, finished_code, comp_code):
+        """A component matches when its code is exactly ``M-`` + FG code."""
+        target = cls._normalized_code(finished_code)
         if not target:
             return False
-        comp = ' '.join((comp_name or '').split()).lower()
-        return comp == 'm-' + target
+        return cls._raw_code_key(comp_code) == target
 
-    def _resolve_raw_material(self, parent, comps):
+    @classmethod
+    def _is_raw_product(cls, product):
+        return bool(cls._raw_code_key(product.default_code))
+
+    def _matches_raw(self, parent, raw):
+        """The auto rule: exact ``M-`` + FG code only."""
+        return self._code_matches_raw(parent.default_code, raw.default_code)
+
+    def _raw_code_map(self):
+        """Map ``finished code`` -> raw templates whose code is ``M-`` + code.
+
+        This is the only auto-fill rule: the raw material code must be exactly
+        ``M-`` + the finished product code (for example ``M-BSKSH05`` for
+        ``BSKSH05``).
+        """
+        raws = self.env['product.template'].search([
+            ('default_code', '=ilike', 'M-%'),
+        ])
+        mapping = {}
+        for raw in raws:
+            key = self._raw_code_key(raw.default_code)
+            if key:
+                mapping[key] = mapping.get(
+                    key, self.env['product.template']) | raw
+        return mapping
+
+    def _resolve_raw_material(self, parent, comps, code_map=None):
         """Return the bahan baku set a finished product *should* have.
 
-        Whatever the component/BOM count is, only components whose name is
-        the finished product's name prefixed with ``M-`` qualify
-        (user decision 2026-08-31).
+        The exact ``M-`` + code rule is the only rule. BoM components are
+        checked with the same rule.
         """
-        return comps.filtered(
-            lambda t: self._name_matches_raw(parent.name, t.name))
+        empty = self.env['product.template']
+        expected = comps.filtered(
+            lambda t: self._code_matches_raw(
+                parent.default_code, t.default_code))
+        if code_map:
+            expected |= code_map.get(
+                self._normalized_code(parent.default_code), empty)
+        return expected.filtered(lambda t: t and t != parent)
 
-    def _fill_raw_from_boms(self, boms):
-        """Sync ``raw_material_ids`` with the auto-fill rules for saved BoMs.
+    def _fill_raw_for_parents(self, parents, code_map=None,
+                              drop_ids=None, drop_by_parent=None):
+        """Sync ``raw_material_ids`` for the given finished products.
 
-        Auto rule is unchanged: only ``M-`` + finished name qualifies.
-        Manual values (non-``M-`` match, e.g. ``M-Y`` for ``FG X`` or any
-        other mat added by the user in the same ``Bahan Baku`` field) are
-        merged and never wiped: an auto-managed record keeps
-        ``expected_auto UNION manual_keep`` on every BoM save, and a manual
-        record gets missing auto items added without removing its own.
-        Stale auto items (still ``M-``-matching but gone from the BoMs)
-        are removed like before. Returns the templates that were written.
+        Auto rule: a component qualifies when its code is exactly ``M-`` +
+        the finished code. BoM components and standalone products are both
+        considered, so products without a BoM are covered too. Manual values
+        (non-matching) are merged and never wiped. ``drop_ids`` /
+        ``drop_by_parent`` remove old auto values after a recode (manual links
+        are left untouched).
         """
-        Bom = self.env['mrp.bom']
-        written = self.env['product.template'].browse()
-        for parent in boms.mapped('product_tmpl_id'):
-            if not parent:
-                continue
-            # union of components across ALL of the parent's active normal
-            # BoMs — the caller may have saved only one of several BoMs
-            parent_boms = Bom.search([
-                ('product_tmpl_id', '=', parent.id),
+        parents = parents.exists()
+        if not parents:
+            return self.env['product.template'].browse()
+        if code_map is None:
+            code_map = self._raw_code_map()
+        Bom = self.env.get('mrp.bom')
+        comps_by_parent = {}
+        if Bom is not None:
+            boms = Bom.search([
+                ('product_tmpl_id', 'in', parents.ids),
                 ('type', '=', 'normal'),
                 ('active', '=', True),
-            ])
-            comps = parent_boms.mapped('bom_line_ids.product_tmpl_id').filtered(
-                lambda t: t and t != parent)
-            expected = self._resolve_raw_material(parent, comps)
-            existing = parent.raw_material_ids
+            ], order='sequence, id')
+            for line in boms.mapped('bom_line_ids'):
+                parent = line.bom_id.product_tmpl_id
+                comp = line.product_tmpl_id
+                if parent and comp:
+                    comps_by_parent[parent.id] = comps_by_parent.get(
+                        parent.id, self.env['product.template']) | comp
+        written = self.env['product.template'].browse()
+        empty = self.env['product.template']
+        drop_by_parent = drop_by_parent or {}
+        for parent in parents:
+            comps = comps_by_parent.get(parent.id, empty)
+            expected = self._resolve_raw_material(parent, comps, code_map)
+            db_existing = parent.raw_material_ids
+            existing = db_existing
+            parent_drop_ids = set(drop_ids or ())
+            parent_drop_ids.update(drop_by_parent.get(parent.id, ()))
+            if parent_drop_ids and parent.raw_material_auto_filled:
+                existing = existing - self.env['product.template'].browse(
+                    parent_drop_ids)
             if parent.raw_material_auto_filled:
                 # Keep manual additions (anything that is NOT an M-match
-                # for the current parent name). Stale auto items (still
+                # for the current parent code). Stale auto items (still
                 # M-matching but no longer expected) are dropped.
                 manual_keep = existing.filtered(
                     lambda t: t.id not in expected.ids
-                    and not self._name_matches_raw(parent.name, t.name))
+                    and not self._matches_raw(parent, t))
                 merged = expected | manual_keep
-                if set(existing.ids) != set(merged.ids):
+                new_flag = bool(expected)
+                if (set(db_existing.ids) != set(merged.ids)
+                        or parent.raw_material_auto_filled != new_flag):
                     parent.with_context(fky_autofill=True).write({
                         'raw_material_ids': [(6, 0, merged.ids)],
-                        'raw_material_auto_filled': bool(expected),
+                        'raw_material_auto_filled': new_flag,
                     })
                     written |= parent
             elif existing or expected:
@@ -98,7 +158,7 @@ class StockAnalysisService(models.AbstractModel):
                 # auto (new M- appearing after a manual edit).
                 stale = existing.filtered(
                     lambda t: t.id not in expected.ids
-                    and self._name_matches_raw(parent.name, t.name))
+                    and self._matches_raw(parent, t))
                 missing = expected.filtered(
                     lambda t: t.id not in existing.ids)
                 if stale or missing:
@@ -110,16 +170,85 @@ class StockAnalysisService(models.AbstractModel):
                     written |= parent
         return written
 
+    def _fill_raw_from_boms(self, boms):
+        """Sync bahan baku for the parents of the given BoMs."""
+        return self._fill_raw_for_parents(boms.mapped('product_tmpl_id'))
+
+    def _find_templates_by_code_key(self, key):
+        """Find finished templates whose normalised code equals ``key``."""
+        if not key:
+            return self.env['product.template'].browse()
+        candidates = self.env['product.template'].search([
+            ('default_code', '=ilike', key),
+        ])
+        return candidates.filtered(
+            lambda t: self._normalized_code(t.default_code) == key)
+
+    def _sync_raw_materials_for_products(self, products, old_codes=None):
+        """Targeted sync after a product is created or recoded.
+
+        Covers both directions (FG -> its M- raw; M- raw -> its FG) and BoM
+        parents that use the product as a component. The only rule is exact
+        ``M-`` + FG code.
+        """
+        products = products.exists()
+        if not products:
+            return self.env['product.template'].browse()
+        code_map = self._raw_code_map()
+        parents = self.env['product.template'].browse()
+        drop_ids = set()
+        drop_by_parent = {}
+        for product in products:
+            raw_code_key = self._raw_code_key(product.default_code)
+            if raw_code_key:
+                parents |= self._find_templates_by_code_key(raw_code_key)
+            else:
+                parents |= product
+            old_code = (old_codes or {}).get(product.id)
+            if old_code:
+                old_raw_code_key = self._raw_code_key(old_code)
+                if old_raw_code_key:
+                    drop_ids.add(product.id)
+                    parents |= self._find_templates_by_code_key(
+                        old_raw_code_key)
+                else:
+                    old_raws = code_map.get(
+                        self._normalized_code(old_code),
+                        self.env['product.template'])
+                    if old_raws:
+                        drop_by_parent.setdefault(product.id, set()).update(
+                            old_raws.ids)
+                    parents |= product
+            Bom = self.env.get('mrp.bom')
+            if Bom is not None:
+                lines = self.env['mrp.bom.line'].search([
+                    ('product_tmpl_id', '=', product.id),
+                ])
+                parents |= lines.mapped('bom_id.product_tmpl_id')
+        return self._fill_raw_for_parents(
+            parents, code_map=code_map, drop_ids=drop_ids,
+            drop_by_parent=drop_by_parent)
+
     def _auto_fill_raw_materials(self):
         """Prefill bahan baku for every product matching the auto-fill rules."""
+        code_map = self._raw_code_map()
+        parents = self.env['product.template'].browse()
         Bom = self.env.get('mrp.bom')
-        if Bom is None:
-            return self.env['product.template'].browse()
-        boms = Bom.search([
-            ('type', '=', 'normal'),
-            ('active', '=', True),
-        ], order='sequence, id')
-        return self._fill_raw_from_boms(boms)
+        if Bom is not None:
+            boms = Bom.search([
+                ('type', '=', 'normal'),
+                ('active', '=', True),
+            ], order='sequence, id')
+            parents |= boms.mapped('product_tmpl_id')
+        if code_map:
+            products = self.env['product.template'].search([])
+            parents |= products.filtered(
+                lambda t: not self._is_raw_product(t)
+                and self._normalized_code(t.default_code) in code_map)
+        parents |= self.env['product.template'].search([
+            ('raw_material_auto_filled', '=', True),
+        ])
+        return self._fill_raw_for_parents(parents, code_map=code_map)
 
     def _raw_ratios_batch(self, finished_tmpls):
         """Return ``{finished_tmpl_id: {raw_tmpl_id: ratio}}``.
@@ -329,12 +458,17 @@ class StockAnalysisService(models.AbstractModel):
             return []
         return [('location_id', 'in', config.on_hand_location_ids.ids)]
 
-    def _preferred_vendors(self, products, company):
-        """Get one applicable priority vendor per product without product loops."""
+    def _preferred_vendor_priorities(self, products, company):
+        """Return ``{product_id: (sequence, vendor_id)}`` in one pass.
+
+        The winning vendor is the applicable ``product.supplierinfo`` with the
+        lowest sequence (ties by id), exactly the priority order used by
+        :meth:`_preferred_vendors`.
+        """
         today = fields.Date.context_today(self)
-        vendors = {}
+        choices = {}
         if not products:
-            return vendors
+            return choices
         suppliers = self.env['product.supplierinfo'].search([
             ('product_tmpl_id', 'in', products.mapped('product_tmpl_id').ids),
             '|', ('company_id', '=', False), ('company_id', '=', company.id),
@@ -343,11 +477,70 @@ class StockAnalysisService(models.AbstractModel):
         ], order='sequence, id')
         product_by_template = {}
         for product in products:
-            product_by_template.setdefault(product.product_tmpl_id.id, []).append(product.id)
+            product_by_template.setdefault(
+                product.product_tmpl_id.id, []).append(product.id)
         for supplier in suppliers:
-            product_ids = [supplier.product_id.id] if supplier.product_id else product_by_template.get(supplier.product_tmpl_id.id, [])
+            sequence = supplier.sequence or 0
+            product_ids = (
+                [supplier.product_id.id] if supplier.product_id
+                else product_by_template.get(supplier.product_tmpl_id.id, []))
             for product_id in product_ids:
-                vendors.setdefault(product_id, supplier.name.id)
+                current = choices.get(product_id)
+                if current is None or sequence < current[0]:
+                    choices[product_id] = (sequence, supplier.name.id)
+        return choices
+
+    def _preferred_vendors(self, products, company):
+        """Get one applicable priority vendor per product without product loops."""
+        return {
+            product_id: vendor_id
+            for product_id, (_sequence, vendor_id)
+            in self._preferred_vendor_priorities(products, company).items()
+        }
+
+    def _mirror_raw_material_vendors(self, products, vendors, company):
+        """Fill a finished product's vendor from its linked bahan baku.
+
+        Only used when the finished product itself has no applicable supplier:
+        just like on-hand/incoming, the mats' vendor is mirrored onto the FG.
+        When several mats have vendors, the one with the lowest supplierinfo
+        sequence wins (same priority order as ``_preferred_vendors``).
+        """
+        product_raws = {}
+        raw_tmpl_ids = set()
+        for product in products:
+            tmpl = product.product_tmpl_id
+            raws = (
+                tmpl.raw_material_ids if tmpl
+                else self.env['product.template'])
+            if raws:
+                product_raws[product.id] = raws
+                raw_tmpl_ids.update(raws.ids)
+        if not raw_tmpl_ids:
+            return vendors
+        raw_products = self.env['product.product'].search([
+            ('product_tmpl_id', 'in', list(raw_tmpl_ids)),
+        ])
+        raw_priorities = self._preferred_vendor_priorities(
+            raw_products, company)
+        tmpl_priority = {}
+        for raw in raw_products:
+            priority = raw_priorities.get(raw.id)
+            if not priority:
+                continue
+            current = tmpl_priority.get(raw.product_tmpl_id.id)
+            if current is None or priority[0] < current[0]:
+                tmpl_priority[raw.product_tmpl_id.id] = priority
+        for product_id, raws in product_raws.items():
+            if vendors.get(product_id):
+                continue
+            best = None
+            for raw in raws:
+                priority = tmpl_priority.get(raw.id)
+                if priority and (best is None or priority[0] < best[0]):
+                    best = priority
+            if best:
+                vendors[product_id] = best[1]
         return vendors
 
     # ------------------------------------------------------------------ #
@@ -672,6 +865,7 @@ class StockAnalysisService(models.AbstractModel):
                 historical_sales = self._grouped_quantities(history_groups, 'product_qty')
 
         vendors = self._preferred_vendors(products, company)
+        vendors = self._mirror_raw_material_vendors(products, vendors, company)
 
         periods = average_months if average_months and average_months > 0 else 1
         values = {}

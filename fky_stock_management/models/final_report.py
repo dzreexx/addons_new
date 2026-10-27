@@ -228,8 +228,10 @@ class StockAnalysisFinalLine(models.Model):
         string='MoQ', readonly=True,
         help='Minimum order quantity yang dipakai saat final dibuat.')
     final_qty = fields.Float(
-        string='Final Quantity', readonly=True,
-        help='Frozen final quantity snapshot at generation time.')
+        string='Final Quantity',
+        help='Final quantity for this final report. Editable: saving it here '
+             'also updates the matching line of the source saved report '
+             '(when this final was generated from one).')
     months_of_stock = fields.Float(
         string='Ketahanan Stok', readonly=True,
         help='Berapa bulan stok bertahan tanpa memperhitungkan incoming.')
@@ -244,6 +246,19 @@ class StockAnalysisFinalLine(models.Model):
         string='Punya Komponen', readonly=True,
         help='Technical: dipakai tombol Components supaya tidak perlu '
              'menghitung jumlah komponen. True bila produk punya BoM aktif.')
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'final_qty' in vals:
+            for line in self:
+                report = line.final_id.source_report_id
+                if not report:
+                    continue
+                target = report.line_ids.filtered(
+                    lambda l: l.product_id == line.product_id)[:1]
+                if target and target.final_qty != line.final_qty:
+                    target.write({'final_qty': line.final_qty})
+        return res
 
     # ------------------------------------------------------------------ #
     # Computed helpers

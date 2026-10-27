@@ -92,6 +92,11 @@ class StockAnalysisWizard(models.TransientModel):
         help='Opsional. Filter berdasarkan kategori internal produk '
              '(mis. carburator, CDI, as gear depan).')
 
+    vendor_ids = fields.Many2many(
+        'res.partner', string='Vendor',
+        help='Opsional. Tampilkan produk yang punya supplier valid untuk '
+             'vendor ini (supplier utama maupun alternatif).')
+
     target_report_id = fields.Many2one(
         'fky.stock.analysis.report', string='Previous Report',
         help='Bila diisi, hasil generate disimpan sebagai versi baru dari '
@@ -326,6 +331,27 @@ class StockAnalysisWizard(models.TransientModel):
                 raise ValidationError(
                     _('Internal categories require the AOS Product module '
                       '(field internal_category is missing on products).'))
+        if self.vendor_ids:
+            today = fields.Date.context_today(self)
+            sellers = self.env['product.supplierinfo'].search([
+                ('name', 'in', self.vendor_ids.ids),
+                '|', ('company_id', '=', False),
+                ('company_id', '=', self.company_id.id),
+                '|', ('date_start', '=', False), ('date_start', '<=', today),
+                '|', ('date_end', '=', False), ('date_end', '>=', today),
+            ])
+            template_ids = set()
+            variant_ids = set()
+            for seller in sellers:
+                if seller.product_id:
+                    variant_ids.add(seller.product_id.id)
+                elif seller.product_tmpl_id:
+                    template_ids.add(seller.product_tmpl_id.id)
+            vendor_products = self.env['product.product'].search([
+                '|', ('product_tmpl_id', 'in', list(template_ids)),
+                ('id', 'in', list(variant_ids)),
+            ])
+            products &= vendor_products
         return products.with_company(self.company_id.id)
 
     # ------------------------------------------------------------------ #
@@ -411,6 +437,7 @@ class StockAnalysisWizard(models.TransientModel):
             'stock_coverage_months': self.stock_coverage_months,
             'product_ids': [(6, 0, self.product_ids.ids)],
             'internal_category_ids': self._internal_category_command(),
+            'vendor_ids': [(6, 0, self.vendor_ids.ids)],
             'target_report_id': self.target_report_id.id,
         })
 

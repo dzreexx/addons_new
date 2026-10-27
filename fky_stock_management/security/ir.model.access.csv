@@ -5,7 +5,6 @@ access_fky_stock_config,fky.stock.config.user,model_fky_stock_config,,1,1,1,1
 access_fky_stock_snooze_wizard,fky.stock.snooze.wizard.user,model_fky_stock_snooze_wizard,,1,1,1,1
 access_fky_stock_bom_wizard,fky.stock.bom.wizard.user,model_fky_stock_bom_wizard,,1,1,1,1
 access_fky_stock_bom_line,fky.stock.bom.line.user,model_fky_stock_bom_line,,1,1,1,1
-access_fky_stock_bom_qty_wizard,fky.stock.bom.qty.wizard.user,model_fky_stock_bom_qty_wizard,,1,1,1,1
 access_fky_stock_operation_wizard,fky.stock.operation.wizard.user,model_fky_stock_operation_wizard,,1,1,1,1
 access_fky_stock_operation_line,fky.stock.operation.line.user,model_fky_stock_operation_line,,1,1,1,1
 access_fky_stock_analysis_service,fky.stock.analysis.service.user,model_fky_stock_analysis_service,,1,1,1,1

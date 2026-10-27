@@ -19,6 +19,9 @@ def uninstall_hook(cr, registry):
         'fky_stock_analysis_wizard_internal_category_rel',
         'fky_stock_analysis_report_internal_category_rel',
         'fky_stock_analysis_preview_internal_category_rel',
+        'fky_stock_analysis_wizard_res_partner_rel',
+        'fky_stock_analysis_report_res_partner_rel',
+        'fky_stock_analysis_preview_res_partner_rel',
     ]
     cr.execute("""
         SELECT table_name FROM information_schema.tables

@@ -24,7 +24,6 @@
                             <field name="product_uom_id" string="Unit" readonly="1"/>
                             <field name="incoming_qty" string="Incoming" readonly="1" digits="[16, 0]"/>
                             <field name="plan_qty" string="Plan Qty" digits="[16, 0]"/>
-                            <button name="action_open_qty" string="Set" type="object" icon="fa-pencil"/>
                         </tree>
                     </field>
                 </group>
@@ -73,29 +72,6 @@
                 </sheet>
                 <footer>
                     <button string="Close" class="btn-secondary" special="cancel"/>
-                </footer>
-            </form>
-        </field>
-    </record>
-
-    <!-- Quantity editor: opened without res_id so the field is always
-         editable (new records have no view mode) -->
-        <record id="view_fky_stock_bom_qty_wizard_form" model="ir.ui.view">        <field name="name">fky.stock.bom.qty.wizard.form</field>
-        <field name="model">fky.stock.bom.qty.wizard</field>
-        <field name="arch" type="xml">
-            <form string="Set Plan Quantity">
-                <sheet>
-                <group>
-                    <field name="bom_line_id" readonly="1" options="{'no_open': True}"/>
-                    <field name="qty" digits="[16, 0]"/>
-                </group>
-                </sheet>
-                <footer>
-                    <button name="action_confirm"
-                            string="Confirm"
-                            type="object"
-                            class="btn-primary"/>
-                    <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>

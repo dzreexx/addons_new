@@ -74,8 +74,8 @@
                             </group>
                         </group>
                         <group string="Final Lines" colspan="2">
-                            <field name="line_ids" nolabel="1" readonly="1">
-                                <tree create="false" delete="false">
+                            <field name="line_ids" nolabel="1">
+                                <tree create="false" delete="false" editable="bottom">
                                     <field name="internal_category_id" string="Int. Category" optional="show"/>
                                     <field name="product_brand_id" string="Brand" optional="show"/>
                                     <field name="default_code" string="Code" optional="show"/>
@@ -113,7 +113,7 @@
             <field name="name">fky.stock.analysis.final.line.tree</field>
             <field name="model">fky.stock.analysis.final.line</field>
             <field name="arch" type="xml">
-                <tree string="Final Lines" create="false" delete="false">
+                <tree string="Final Lines" create="false" delete="false" editable="bottom">
                     <field name="final_id" optional="show"/>
                     <field name="internal_category_id" string="Int. Category" optional="show"/>
                     <field name="product_brand_id" string="Brand" optional="show"/>

@@ -55,22 +55,6 @@ class StockBomLine(models.TransientModel):
         readonly=True,
     )
 
-    def action_open_qty(self):
-        """Open the quantity editor (new record: always editable)."""
-        self.ensure_one()
-        return {
-            'name': _('Set Plan Qty: %s') % (
-                self.component_id.display_name or ''),
-            'type': 'ir.actions.act_window',
-            'res_model': 'fky.stock.bom.qty.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_bom_line_id': self.id,
-                'default_qty': self.plan_qty or 0.0,
-            },
-        }
-
 
 class StockBomWizard(models.TransientModel):
     _name = 'fky.stock.bom.wizard'
@@ -117,7 +101,6 @@ class StockBomWizard(models.TransientModel):
         'fky.stock.bom.line',
         'wizard_id',
         string='Components',
-        readonly=True,
     )
 
     @api.model
@@ -260,29 +243,3 @@ class StockBomWizard(models.TransientModel):
                 product_id=product.id,
                 coverage_months=coverage,
             ))
-
-
-class StockBomQtyWizard(models.TransientModel):
-    _name = 'fky.stock.bom.qty.wizard'
-    _description = 'Set Material Plan Quantity'
-
-    bom_line_id = fields.Many2one(
-        'fky.stock.bom.line', string='Material Line',
-        required=True, ondelete='cascade')
-    qty = fields.Float(
-        string='Plan Qty', required=True,
-        help='Quantity of this material to add into the analysis.')
-
-    def action_confirm(self):
-        """Write the quantity back and reopen the components popup."""
-        self.ensure_one()
-        self.bom_line_id.write({'plan_qty': self.qty or 0.0})
-        wizard = self.bom_line_id.wizard_id
-        return {
-            'name': _('Product Components'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'fky.stock.bom.wizard',
-            'view_mode': 'form',
-            'res_id': wizard.id,
-            'target': 'new',
-        }

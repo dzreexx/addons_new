@@ -45,6 +45,8 @@ class StockAnalysisReport(models.Model):
         'product.product', string='Filter Product', readonly=True)
     internal_category_ids = fields.Many2many(
         'internal.category', string='Internal Category', readonly=True)
+    vendor_ids = fields.Many2many(
+        'res.partner', string='Vendor', readonly=True)
 
     line_ids = fields.One2many(
         'fky.stock.analysis.line', 'report_id', string='Hasil Analisa')
@@ -92,6 +94,7 @@ class StockAnalysisReport(models.Model):
             'average_months': self.average_months,
             'stock_coverage_months': self.stock_coverage_months,
             'product_ids': [(6, 0, self.product_ids.ids)],
+            'vendor_ids': [(6, 0, self.vendor_ids.ids)],
             'target_report_id': self.id,
         })
         return {

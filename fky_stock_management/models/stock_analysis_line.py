@@ -23,8 +23,13 @@ class StockAnalysisLine(models.Model):
     product_id = fields.Many2one(
         'product.product', string='Product Name', required=True, readonly=True)
 
-    default_code = fields.Char(string='Code', related='product_id.default_code')
+    default_code = fields.Char(
+        string='Code', related='product_id.default_code',
+        search='_search_default_code')
     product_name = fields.Char(string='Product Name', related='product_id.display_name')
+
+    def _search_default_code(self, operator, value):
+        return [('product_id.default_code', operator, value)]
 
     internal_category_id = fields.Many2one(
         'internal.category', string='Internal Category', readonly=True,

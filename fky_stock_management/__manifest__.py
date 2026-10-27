@@ -1,6 +1,6 @@
 {
     'name': 'FKY Stock Alert & Purchase Analysis',
-    'version': '15.0.2.42.0',
+    'version': '15.0.2.47.0',
     'category': 'Inventory',
     'summary': 'Stock alert dashboard with graceful degradation for optional core modules',
     'author': 'FKY',

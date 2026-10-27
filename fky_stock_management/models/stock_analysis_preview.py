@@ -25,6 +25,8 @@ class StockAnalysisPreview(models.TransientModel):
         'product.product', string='Filter Product', readonly=True)
     internal_category_ids = fields.Many2many(
         'internal.category', string='Internal Category', readonly=True)
+    vendor_ids = fields.Many2many(
+        'res.partner', string='Vendor', readonly=True)
 
     target_report_id = fields.Many2one(
         'fky.stock.analysis.report', string='Previous Report',
@@ -76,6 +78,9 @@ class StockAnalysisPreview(models.TransientModel):
             if report.company_id.id != self.company_id.id:
                 raise ValidationError(
                     _('The target report belongs to a different company.'))
+            report.write({
+                'vendor_ids': [(6, 0, self.vendor_ids.ids)],
+            })
             report.line_ids.unlink()
         else:
             report = self.env['fky.stock.analysis.report'].create({
@@ -84,6 +89,7 @@ class StockAnalysisPreview(models.TransientModel):
                 'stock_coverage_months': self.stock_coverage_months,
                 'product_ids': [(6, 0, self.product_ids.ids)],
                 'internal_category_ids': self._internal_category_command(),
+                'vendor_ids': [(6, 0, self.vendor_ids.ids)],
             })
             now = fields.Datetime.context_timestamp(self, fields.Datetime.now())
             report.write({
@@ -190,8 +196,13 @@ class StockAnalysisPreviewLine(models.TransientModel):
     product_id = fields.Many2one(
         'product.product', string='Product Name', required=True, readonly=True)
 
-    default_code = fields.Char(string='Code', related='product_id.default_code')
+    default_code = fields.Char(
+        string='Code', related='product_id.default_code',
+        search='_search_default_code')
     product_name = fields.Char(string='Product Name', related='product_id.display_name')
+
+    def _search_default_code(self, operator, value):
+        return [('product_id.default_code', operator, value)]
 
     internal_category_id = fields.Many2one(
         'internal.category', string='Internal Category', readonly=True,
